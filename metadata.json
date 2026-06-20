@@ -1,0 +1,8 @@
+{
+  "name": "Pamugi - Food Savings Tracker",
+  "description": "AI 요리 멘토 '파먹이'와 함께 냉장고 속 식재료를 구출하고 알뜰하게 식비를 절약하는 레시피 추천 및 지출 방어 트래커입니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
