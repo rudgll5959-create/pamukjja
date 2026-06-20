@@ -39,11 +39,14 @@ export async function validateApiKey(apiKey: string): Promise<ValidateKeyRespons
       body: JSON.stringify({ apiKey: trimmedKey }),
     });
 
-    if (res.ok) {
+    const contentType = res.headers.get("content-type") || "";
+    if (res.ok && contentType.includes("application/json")) {
       const data = await res.json();
       if (data && typeof data.valid === "boolean") {
         return { valid: data.valid };
       }
+    } else {
+      throw new Error("Backend not available or did not return JSON");
     }
   } catch (err) {
     console.warn("Backend validate API failed, attempting browser direct validation...", err);

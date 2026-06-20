@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { ChatMessage, Recipe } from "../types";
 import { fileToBase64 } from "../utils";
-import pamugiMascot from "../assets/images/pamugi_mascot_1781926745171.jpg";
+import { MascotAvatar } from "../App";
 import { analyzeImage, recommendRecipes } from "../utils/geminiClient";
 
 interface ChatInterfaceProps {
@@ -422,12 +422,7 @@ export default function ChatInterface({
       <div className="bg-white/50 backdrop-blur-sm px-5 py-4 border-b border-white/40 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white border border-white/80 flex items-center justify-center shadow-md overflow-hidden shrink-0">
-            <img
-              src={pamugiMascot}
-              alt="파먹이"
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
+            <MascotAvatar className="w-full h-full" />
           </div>
           <div>
             <h3 className="font-bold text-[#2D3120] text-sm md:text-base flex items-center gap-1">
@@ -457,12 +452,7 @@ export default function ChatInterface({
           >
             {msg.sender === "mentor" && (
               <div className="w-8 h-8 rounded-full bg-white border border-white/80 overflow-hidden shadow-xs flex items-center justify-center shrink-0">
-                <img
-                  src={pamugiMascot}
-                  alt="파먹이"
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+                <MascotAvatar className="w-full h-full" />
               </div>
             )}
             <div className="space-y-1">

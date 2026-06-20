@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { SavingsLog, BudgetStats, Recipe } from "../types";
 import { formatCurrency, getRecipeImage } from "../utils";
+import { PameokiCharacter } from "./RecipeDetail";
 
 interface DashboardProps {
   logs: SavingsLog[];
@@ -24,6 +25,30 @@ interface DashboardProps {
   onDeleteLog: (id: string) => void;
   onUpdateBudget: (monthlyLimit: number) => void;
   onViewRecipe?: (recipe: Recipe) => void;
+}
+
+// Safe self-contained thumbnail component with automatic fallback handling
+function DashboardImage({ log }: { log: SavingsLog }) {
+  const [failed, setFailed] = useState(false);
+  const customImg = log.customImage || log.recipeSnapshot?.customImage;
+  
+  if (!customImg || failed) {
+    return (
+      <div className="w-full h-full bg-gradient-to-br from-[#FAF9F6] to-[#EAECE0] flex items-center justify-center p-1 select-none" title="파먹이 요리">
+        <PameokiCharacter className="w-8 h-8 opacity-90 animate-pulse" />
+      </div>
+    );
+  }
+  
+  return (
+    <img
+      src={customImg}
+      alt={log.recipeSnapshot?.name || "요리"}
+      className="w-full h-full object-cover"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export default function Dashboard({
@@ -165,10 +190,10 @@ export default function Dashboard({
 
   // Fun helper to output level title based on total KRW savings
   const getSavingsLevel = (amt: number) => {
-    if (amt < 20000) return { title: "새싹 파먹러 🌱", desc: "이제 막 냉장고 절약을 시작해 나가는 비기너 요리사" };
-    if (amt < 60000) return { title: "주부 9단 우등생 🍳", desc: "남은 야채를 버리지 않는 꼼꼼한 지출 수호 방위단" };
-    if (amt < 150000) return { title: "우주 알뜰 고수 🌟", desc: "재료 유통기한을 미리 꿰뚫어 마트 붐비는 횟수를 줄이는 파먹마스터" };
-    return { title: "식비의 절대 성벽 신 제우스 ⚡", desc: "배달음식 유혹을 완전 타파하고 냉장고 속 식물들을 생명 창조한 절정의 신수" };
+    if (amt < 20000) return { title: "새싹 요리사 🌱", desc: "냉장고 비우기를 열심히 하는 초보 요리사예요!" };
+    if (amt < 60000) return { title: "알뜰 요리사 🍳", desc: "남은 재료를 버리지 않고 알차게 요리해요!" };
+    if (amt < 150000) return { title: "냉장고 고수 🌟", desc: "식재료도 아끼고 마트 방문도 획기적으로 줄인 고수!" };
+    return { title: "절약의 수호신 ⚡", desc: "배달음식을 이겨내고 식비를 꽉 잡은 요리의 달인!" };
   };
 
   const levelInfo = getSavingsLevel(stats.savedTotal);
@@ -188,13 +213,13 @@ export default function Dashboard({
           <div>
             <div className="flex items-center gap-1.5 text-[#E9EBD8] text-xs font-bold uppercase tracking-wider">
               <Award className="w-4 h-4 text-orange-200 fill-orange-200" />
-              <span>누적 식비 철통 절감액</span>
+              <span>🪙 지금까지 아낀 돈</span>
             </div>
             <h2 className="text-3xl font-black font-sans mt-2">{formatCurrency(stats.savedTotal)}</h2>
           </div>
           <p className="text-[11px] text-[#E9EBD8]/90 font-bold pt-3 border-t border-white/15 z-10 flex items-center gap-1">
             <TrendingDown className="w-3.5 h-3.5 text-orange-200" />
-            내 냉장고 속에서 매달 부활시킨 식당 몫!
+            집밥 먹고 이만큼이나 절약했어요!
           </p>
         </div>
 
@@ -202,11 +227,11 @@ export default function Dashboard({
         <div className="bg-white/60 backdrop-blur-md border border-white/80 p-5 rounded-[28px] shadow-sm flex flex-col justify-between min-h-[140px]">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#5C6346] font-bold uppercase tracking-wider">이번 달 절약 목표 예산</span>
+              <span className="text-xs text-[#5C6346] font-bold uppercase tracking-wider">🎯 이번 달 절약 목표</span>
               <button
                 onClick={() => setIsEditingBudget(!isEditingBudget)}
                 className="text-xs text-[#BC6C4D] hover:text-[#9A5337] font-bold cursor-pointer transition-colors"
-              >
+               >
                 {isEditingBudget ? "닫기" : "설정 수정"}
               </button>
             </div>
@@ -236,7 +261,7 @@ export default function Dashboard({
 
           <div className="mt-2.5">
             <div className="flex justify-between text-[11px] text-[#5C6346] font-bold mb-1">
-              <span>목표 방어 달성률</span>
+              <span>목표 달성률</span>
               <span>{budgetRatio.toFixed(1)}%</span>
             </div>
             <div className="w-full h-2 bg-white/40 border border-white/40 rounded-full overflow-hidden">
@@ -251,7 +276,7 @@ export default function Dashboard({
         {/* Fun level tier progress card */}
         <div className="bg-white/60 backdrop-blur-md border border-white/80 p-5 rounded-[28px] shadow-sm flex flex-col justify-between min-h-[140px]">
           <div>
-            <span className="text-xs text-[#BC6C4D] font-black uppercase tracking-wider">파먹마스터 등급 달성</span>
+            <span className="text-xs text-[#BC6C4D] font-black uppercase tracking-wider">🌱 파먹이와 친밀도</span>
             <h4 className="font-extrabold text-[#2D3120] font-sans mt-1 flex items-center gap-1 text-sm md:text-base">
               <Flame className="w-4 h-4 text-[#BC6C4D] fill-[#BC6C4D]" />
               {levelInfo.title}
@@ -262,8 +287,8 @@ export default function Dashboard({
           </div>
 
           <div className="pt-2.5 border-t border-white/40 flex items-center justify-between text-[11px] text-[#5C6346] font-bold">
-            <span>총 {logs.length}회 지출 방어 실적 쌓임</span>
-            <span className="text-[#BC6C4D] animate-pulse">LV 계단 상승 중 ⚡</span>
+            <span>총 {logs.length}번 아꼈어요</span>
+            <span className="text-[#BC6C4D] animate-pulse">친밀도 오르는 중! ⚡</span>
           </div>
         </div>
       </div>
@@ -278,7 +303,7 @@ export default function Dashboard({
               : "border-transparent text-stone-400 hover:text-stone-700"
           }`}
         >
-          📂 식비 피드 & 일지 등록
+          📝 절약 일기 (식비 기록)
         </button>
         <button
           onClick={() => setDashboardSubTab("weekly")}
@@ -288,7 +313,7 @@ export default function Dashboard({
               : "border-transparent text-stone-400 hover:text-stone-700"
           }`}
         >
-          📅 주간 리포트 & 절약 분석
+          📊 이번 주 통계
         </button>
         <button
           onClick={() => setDashboardSubTab("monthly")}
@@ -298,7 +323,7 @@ export default function Dashboard({
               : "border-transparent text-stone-400 hover:text-stone-700"
           }`}
         >
-          📊 월간 예산 리포트 & 예측
+          📅 이번 달 통계
         </button>
       </div>
 
@@ -311,10 +336,10 @@ export default function Dashboard({
               <div>
                 <h3 className="font-bold text-[#2D3120] text-sm md:text-base flex items-center gap-1.5 uppercase tracking-wider">
                   <CheckCircle className="w-4.5 h-4.5 text-[#5C6346]" />
-                  식비 절감 & 요리 구출 내역 일지
+                  📋 내가 기록한 절약 일기장
                 </h3>
                 <p className="text-[10px] text-[#5C6346]/80 font-semibold mt-0.5">
-                  냉장고를 털며 집밥 요리를 완성해 절임한 장보기 내역
+                  집에서 직접 요리해 먹으며 알뜰하게 돈을 아낀 기록들입니다.
                 </p>
               </div>
             </div>
@@ -323,8 +348,8 @@ export default function Dashboard({
               <div className="text-center py-12 px-4 space-y-2">
                 <span className="text-3xl">🍲</span>
                 <p className="text-xs text-[#5C6346] font-bold leading-relaxed">
-                  아직 기록된 덮밥이나 찌개, 식비 절약 실적이 없습니다. <br />
-                  채팅 멘토 파먹이에게 레시피를 주문하거나 아래 수동 절약 일지에 기입해 보세요!
+                  아직 오늘의 절약 기록이 없어요! <br />
+                  파먹이에게 요리법을 추천받거나 오른쪽 일지에 작성해 보세요!
                 </p>
               </div>
             ) : (
@@ -345,12 +370,7 @@ export default function Dashboard({
                         className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-stone-200 bg-stone-50 md:block hidden animate-fade-in cursor-zoom-in hover:scale-105 hover:shadow-xs active:scale-95 transition-all"
                         title="사진 크게 보기 (클릭)"
                       >
-                        <img
-                          src={log.customImage || log.recipeSnapshot.customImage || getRecipeImage(log.recipeSnapshot.name)}
-                          alt={log.recipeSnapshot.name}
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
+                        <DashboardImage log={log} />
                       </div>
                     )}
 
@@ -370,9 +390,9 @@ export default function Dashboard({
                           <button
                             onClick={() => onViewRecipe?.(log.recipeSnapshot!)}
                             className="text-[9px] bg-[#5C6346]/10 text-[#5C6346] px-1.5 py-0.5 rounded font-bold hover:bg-[#5C6346]/20 cursor-pointer shrink-0"
-                            title="레시피 다시보기"
+                            title="요리법 보기"
                           >
-                            📖 레시피 다시보기
+                            📖 요리법 보기
                           </button>
                         )}
                       </div>
@@ -384,7 +404,7 @@ export default function Dashboard({
                               key={i}
                               className="bg-white/90 border border-[#E9EBD8] text-[9px] text-[#5C6346] font-extrabold px-2.5 py-0.5 rounded-full"
                             >
-                              #{i} 구출
+                              #{i}
                             </span>
                           ))}
                         </div>
@@ -419,10 +439,10 @@ export default function Dashboard({
                 <PiggyBank className="w-4.5 h-4.5 text-[#BC6C4D]" />
                 <div>
                   <h4 className="font-bold text-[#2D3120] text-xs sm:text-sm font-sans uppercase tracking-wider">
-                    알뜰 절약내역 일지 작성
+                    📒 오늘 아낀 돈 적기
                   </h4>
                   <p className="text-[10px] text-[#5C6346] font-semibold mt-0.5">
-                    나만의 가계부 절약 액수 보태기
+                    내가 아낀 식비를 한눈에 보아요
                   </p>
                 </div>
               </div>
@@ -430,12 +450,12 @@ export default function Dashboard({
               <form onSubmit={handleManualLogSubmit} className="space-y-3.5 mt-1">
                 <div>
                   <label className="block text-[10px] font-bold text-[#5C6346] mb-1">
-                    항목 이름 / 대체 명목 *
+                    어떤 요리를 하셨나요? *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="예: 배달 대신 냉장고 두부김치"
+                    placeholder="예: 배달 대신 두부김치"
                     value={manualTitle}
                     onChange={(e) => setManualTitle(e.target.value)}
                     className="w-full px-3.5 py-2 bg-white/70 text-stone-700 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#5C6346] font-semibold shadow-inner"
@@ -445,7 +465,7 @@ export default function Dashboard({
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-[10px] font-bold text-[#5C6346] mb-1">
-                      추산 방어 비용 (원) *
+                      아낀 돈 (원) *
                     </label>
                     <input
                       type="text"
@@ -458,7 +478,7 @@ export default function Dashboard({
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-[#5C6346] mb-1">
-                      카테고리
+                      종류
                     </label>
                     <select
                       value={manualPurpose}
@@ -476,11 +496,11 @@ export default function Dashboard({
 
                 <div>
                   <label className="block text-[10px] font-bold text-[#5C6346] mb-1">
-                    해결된 식재료 (쉼표로 구분)
+                    사용한 재료 (쉼표로 구분)
                   </label>
                   <input
                     type="text"
-                    placeholder="예: 신김치, 두부, 양파"
+                    placeholder="예: 김치, 두부, 양파"
                     value={manualIngredients}
                     onChange={(e) => setManualIngredients(e.target.value)}
                     className="w-full px-3.5 py-2 bg-white/70 text-stone-700 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#5C6346] font-semibold shadow-inner"
@@ -489,10 +509,10 @@ export default function Dashboard({
 
                 <div>
                   <label className="block text-[10px] font-bold text-[#5C6346] mb-1">
-                    실천 비망록 / 감상평
+                    한 줄 느낌 / 메모
                   </label>
                   <textarea
-                    placeholder="예: 배달 치킨 22,000원 아끼고 건강도 구출 성공!"
+                    placeholder="예: 배달 대신 집밥 만들어 돈도 아끼고 건강도 챙겼어요!"
                     value={manualNotes}
                     onChange={(e) => setManualNotes(e.target.value)}
                     className="w-full px-3.5 py-2 bg-white/70 text-stone-700 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#5C6346] font-semibold shadow-inner h-16 resize-none"
@@ -507,7 +527,7 @@ export default function Dashboard({
                   type="submit"
                   className="w-full py-3 bg-[#5C6346] hover:bg-[#4d5239] text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1 cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" /> 일지 추가 등록
+                  <Plus className="w-4 h-4" /> 등록하기 ✍️
                 </button>
               </form>
             </div>
@@ -520,15 +540,15 @@ export default function Dashboard({
             <div>
               <h3 className="font-bold text-[#2D3120] text-sm md:text-base flex items-center gap-1.5 uppercase tracking-wider">
                 <Calendar className="w-4.5 h-4.5 text-[#5C6346]" />
-                주간 식비 절감 분석 리포트
+                이번 주 절약 리포트
               </h3>
               <p className="text-[10px] text-stone-500 font-semibold mt-0.5">
-                최근 7일간 냉장고 파먹기를 통한 일별 지출 절감 정밀 통계입니다.
+                지난 일주일 동안 식비를 얼마나 아꼈는지 한눈에 보여드려요.
               </p>
             </div>
             
             <div className="bg-[#5C6346]/10 px-3 py-1 rounded-xl text-right shrink-0">
-              <span className="text-[10px] font-extrabold text-[#5C6346] block uppercase">최근 7일 지출 방어액</span>
+              <span className="text-[10px] font-extrabold text-[#5C6346] block uppercase">최근 7일간 아낀 돈</span>
               <span className="text-sm font-black text-[#5C6346] font-serif">
                 {formatCurrency(weeklyData.reduce((sum, d) => sum + d.amount, 0))}
               </span>
@@ -537,7 +557,7 @@ export default function Dashboard({
 
           {/* Interactive Responsive SVG Bar Chart for 7 Days */}
           <div className="space-y-2">
-            <h4 className="text-[11px] font-black text-[#2D3120] uppercase tracking-wider">🗓️ 7일간의 지출 절약 피크 통계</h4>
+            <h4 className="text-[11px] font-black text-[#2D3120] uppercase tracking-wider">🗓️ 요일별 아낀 금액</h4>
             <div className="bg-white/70 border border-stone-100 p-5 rounded-2xl shadow-inner flex flex-col justify-end min-h-[220px]">
               {/* Daily bars flex row */}
               <div className="flex items-end justify-between gap-2 h-[130px] w-full pt-4">
@@ -561,7 +581,7 @@ export default function Dashboard({
                       <div className="w-full max-w-[24px] bg-stone-100 border border-stone-200/50 rounded-t-lg h-full flex items-end">
                         <div
                           style={{ height: `${Math.max(percentage, 3)}%` }}
-                          className={`w-full rounded-t-md transition-all duration-700 ${
+                          className={`w-full rounded-t-lg transition-all duration-700 ${
                             day.amount > 0 
                               ? "bg-gradient-to-t from-[#5C6346] to-[#BC6C4D] group-hover:brightness-110 shadow-3xs" 
                               : "bg-stone-200/50"
@@ -584,16 +604,16 @@ export default function Dashboard({
             {/* Weekly Habits Insight */}
             <div className="p-4 bg-white/75 border border-white rounded-2xl shadow-3xs space-y-2">
               <h4 className="text-xs font-black text-[#5C6346] flex items-center gap-1">
-                ⭐ 지출 방위 코치의 요리 분석
+                ⭐ 파먹이의 응원 메세지
               </h4>
               <div className="space-y-1.5 text-[11px] text-[#4E4A42] leading-relaxed">
                 <p className="font-semibold">
-                  이번 주 실제 냉장고 파먹기를 기록한 횟수는 총 <strong className="text-[#BC6C4D]">{logs.filter(l => l.recipeSnapshot).length}회</strong> 입니다.
+                  이번 주에는 집밥 요리를 <strong className="text-[#BC6C4D]">{logs.filter(l => l.recipeSnapshot).length}번</strong> 만들었네요!
                 </p>
                 <p className="text-stone-500">
                   {logs.length > 2 
-                    ? "주 2회 이상 고정 홈밥 일과를 달성하셨네요! 마트 가기 전 소량의 재료만으로 알차게 냉장고 식수를 유지해 나가고 있는 기품있는 살림꾼이십니다. 훌륭한 주간 리듬을 고수하고 계십니다."
-                    : "아직 이번 주 주방 가동률을 더 올릴 수 있습니다! 감자, 계란, 밥 같은 필수 상비형 기본 재료들의 구출 탭을 활용해 간단한 볶음밥이나 찌개를 기획해보세요."}
+                    ? "집밥을 정말 자주 드시고 계시네요! 냉장고 재료를 최고로 잘 쓰고 계시는 알뜰요리 고수님이십니다. 계속 화이팅해봐요!"
+                    : "냉장고에 남은 감자, 계란, 밥을 활용해서 조금 더 밥상을 채워보시는건 어떨까요? 언제든 도전에 도움을 드립니다!"}
                 </p>
               </div>
             </div>
@@ -601,12 +621,12 @@ export default function Dashboard({
             {/* Smart Coaching Plan */}
             <div className="p-4 bg-white/75 border border-white rounded-2xl shadow-3xs space-y-2">
               <h4 className="text-xs font-black text-[#BC6C4D] flex items-center gap-1">
-                💡 다음 주 냉장고 구출 장보기 가이드
+                💡 돈 아끼는 꿀팁
               </h4>
               <ul className="space-y-1 text-[11px] text-[#4E4A42] list-disc pl-4 font-semibold">
-                <li>배달 충동률이 높은 수/목요일 저녁 야식을 방어하면 주간 20,000원의 추가 세이빙이 가능합니다.</li>
-                <li>남은 자투리 당근과 양파는 잘게 다진 후 보관 백에 얼려두면, 다음 주 볶음밥에 재투자할 수 있어 폐기 제로에 도달합니다!</li>
-                <li>목표 예산 소진이 빨라지지 않도록 주말 마트는 명단 작성 후에만 방문을 기획하세요.</li>
+                <li>배달 생각이 심해지는 수요일이나 목요일 저녁에 집밥을 만들어 먹어보세요, 몇 만원씩 아낄 수 있습니다.</li>
+                <li>남은 야채는 잘 썰어서 냉동실에 보관해 두면, 다음번에 볶음밥을 아주 쉽고 빠르게 완성해 먹을 수 있답니다.</li>
+                <li>마트에 들러 장을 보기 전에 미리 필요한 목록들을 종이에 적어가면, 필요 없는 과소비를 완벽하게 막을 수 있어요.</li>
               </ul>
             </div>
           </div>
@@ -618,10 +638,10 @@ export default function Dashboard({
             <div>
               <h3 className="font-bold text-[#2D3120] text-sm md:text-base flex items-center gap-1.5 uppercase tracking-wider">
                 <DollarSign className="w-4.5 h-4.5 text-[#BC6C4D]" />
-                월간 목표 예산 & 예상 절감액 리포트
+                이번 달 예산 및 절약 리포트
               </h3>
               <p className="text-[10px] text-stone-500 font-semibold mt-0.5">
-                이번 달 예산 지표와 실제 누적 절감 성과, 미래 예상 시뮬레이션을 분석합니다.
+                이번 달 예산 목표와 지금까지 아낀 성적표를 한눈에 보여드려요.
               </p>
             </div>
           </div>
@@ -630,24 +650,24 @@ export default function Dashboard({
             {/* Horizontal budget progress gauge & Category breakdown */}
             <div className="lg:col-span-7 bg-white/40 border border-white p-5 rounded-2xl shadow-3xs space-y-5">
               <div className="space-y-2">
-                <span className="text-[11px] font-black text-[#5C6346] block uppercase tracking-wider">📊 이번 달 목표 예산 중간 점검</span>
+                <span className="text-[11px] font-black text-[#5C6346] block uppercase tracking-wider">📊 이번 달 점검</span>
                 
                 <div className="p-4 bg-white/70 rounded-xl border border-stone-100 flex items-center justify-between">
                   <div className="space-y-1">
-                    <span className="text-[10px] text-stone-500 font-bold block">기록된 집밥 지출 방어액</span>
+                    <span className="text-[10px] text-stone-500 font-bold block">요리해서 아낀 총 금액</span>
                     <span className="text-xl font-black text-[#5C6346] font-serif">{formatCurrency(stats.savedTotal)}</span>
                   </div>
                   <div className="w-[1px] h-8 bg-stone-200" />
                   <div className="space-y-1 text-right">
-                    <span className="text-[10px] text-stone-500 font-bold block">설정한 절약 목표</span>
+                    <span className="text-[10px] text-stone-500 font-bold block">내가 정한 한달 목표액</span>
                     <span className="text-xl font-black text-[#2D3120] font-serif">{formatCurrency(stats.monthlyLimit)}</span>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex justify-between text-[11px] font-bold text-[#5C6346] pt-1">
-                    <span>목표 진행률</span>
-                    <span>{budgetRatio.toFixed(1)}% ({budgetRatio >= 100 ? "초과 달성! 🎉" : "방어 중"})</span>
+                    <span>목표 진행 정도</span>
+                    <span>{budgetRatio.toFixed(1)}% ({budgetRatio >= 100 ? "목표 달성! 🎉" : "절약 중"})</span>
                   </div>
                   <div className="w-full h-3 bg-white border border-stone-200 rounded-full overflow-hidden">
                     <div
@@ -660,13 +680,13 @@ export default function Dashboard({
 
               {/* Category-wise Savings Breakdown representation */}
               <div className="space-y-3.5 pt-3 border-t border-stone-100">
-                <span className="text-[11px] font-black text-[#5C6346] block uppercase tracking-wider">🥗 카테고리별 아낀 식비 비중</span>
+                <span className="text-[11px] font-black text-[#5C6346] block uppercase tracking-wider">🥗 종류별 아낀 비중</span>
                 
                 <div className="space-y-2.5">
                   {categoryBreakdown.map((item) => (
                     <div key={item.name} className="space-y-1">
                       <div className="flex justify-between text-[10px] font-bold text-[#4E4A42]">
-                        <span>{item.name} 방어</span>
+                        <span>{item.name}</span>
                         <span>{formatCurrency(item.amount)} ({item.percentage.toFixed(0)}%)</span>
                       </div>
                       <div className="w-full h-1.5 bg-white/80 border border-stone-100 rounded-full overflow-hidden">
@@ -685,17 +705,17 @@ export default function Dashboard({
             <div className="lg:col-span-5 bg-white/60 backdrop-blur-xs border border-white p-5 rounded-2xl shadow-3xs flex flex-col justify-between space-y-4">
               <div className="space-y-2">
                 <h4 className="text-xs font-black text-[#BC6C4D] flex items-center gap-1.5 uppercase tracking-wider">
-                  🔮 AI 스마트 월말 예상 절감액 예측
+                  🔮 파먹이의 월말 예상 아낌이 계산기
                 </h4>
                 <p className="text-[10px] text-stone-500 leading-tight">
-                  현재 일일 평균 지출 절약 속도({formatCurrency(Math.round(dailyAverage))})를 기반으로 이번 달 말에 최종 도달할 절감 수치를 과학적으로 시뮬레이션했습니다.
+                  지금까지 아낀 평균 속도를 기준으로, 이번 달 말까지 최종적으로 아낄 수 있는 예상 금액을 계산해 보았어요.
                 </p>
               </div>
 
               {/* Simulation metrics display */}
               <div className="p-4 bg-[#5C6346]/5 rounded-xl border border-[#5C6346]/10 text-center space-y-2.5 my-2">
                 <div className="space-y-0.5">
-                  <span className="text-[10px] font-bold text-[#5C6346] block">이번 달 최종 예측 절감 한도액</span>
+                  <span className="text-[10px] font-bold text-[#5C6346] block">이번 달 예상 최종 절약액</span>
                   <span className="text-2xl font-black text-[#5C6346] font-serif filter drop-shadow-5xs">
                     {formatCurrency(projectedSavings)}
                   </span>
@@ -703,15 +723,15 @@ export default function Dashboard({
                 
                 <div className="bg-white/85 p-2 rounded-lg border border-stone-100">
                   <div className="flex items-center justify-between text-[10px] font-bold text-[#4E4A42]">
-                    <span>목표액 대비 예측도</span>
+                    <span>목표 대비 예상률</span>
                     <span className={`${projectedSavings >= stats.monthlyLimit ? "text-[#5C6346]" : "text-[#BC6C4D]"}`}>
                       {stats.monthlyLimit > 0 ? ((projectedSavings / stats.monthlyLimit) * 100).toFixed(1) : 0}%
                     </span>
                   </div>
                   <p className="text-[9px] text-left text-stone-500 leading-tight mt-1 font-semibold">
                     {projectedSavings >= stats.monthlyLimit 
-                      ? "🎉 훌륭합니다! 지금 월 중반 기세를 계속 유지한다면 이번 달 목표 수치를 완전 점령할 것으로 전망됩니다."
-                      : "💡 조금만 더 노력하면 목표에 닿을 수 있습니다! 냉장고 야채들을 정기 요리로 환원하여 배달비 1~2회만 더 구출해보세요."}
+                      ? "🎉 훌륭합니다! 지금 속도를 계속 유지하신다면 이번 달 약속한 절약 목표를 완벽하게 돌파할 수 있어요!"
+                      : "💡 조금만 힘내면 목표에 도달할 수 있어요! 냉장고에 수줍게 남아있는 야채들을 활용해서 배달을 조금만 더 줄여볼까요?"}
                   </p>
                 </div>
               </div>
@@ -719,7 +739,7 @@ export default function Dashboard({
               {/* Annual extrapolation encouragement speech */}
               <div className="text-[10px] text-stone-600 leading-relaxed border-t border-stone-100 pt-3">
                 <p className="font-bold">
-                  🚀 <span className="text-[#BC6C4D]">장기 비전:</span> 이 습관을 1년간 이어나가면, 연간 총 약 <strong className="text-[#5C6346] font-serif text-xs">{formatCurrency(projectedSavings * 12)}</strong>의 불필요한 외식비를 저금하여 미래 재정 독립의 기초를 다질 수 있습니다!
+                  🚀 <span className="text-[#BC6C4D]">장기적 혜택:</span> 이 알뜰한 습관을 1년 동안 쭉 이어가면, 무려 1년에 약 <strong className="text-[#5C6346] font-serif text-xs">{formatCurrency(projectedSavings * 12)}</strong>을 아껴서 저금할 수 있습니다! 정말 대단해요!
                 </p>
               </div>
             </div>
@@ -758,10 +778,10 @@ export default function Dashboard({
 
           <div className="mt-4 md:mt-5 text-center space-y-1 max-w-lg px-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-[#2D3120] font-black text-sm md:text-base tracking-tight font-sans">
-              {zoomTitle || "식비 수호 일지 전경 사진"}
+              {zoomTitle || "식비 아끼기 성공 요리"}
             </h3>
             <p className="text-[#5C6346] font-semibold text-[10px] md:text-xs">
-              🥦 냉장고 소중한 재료를 탈출시켜 정성껏 조리해 낸 맛있는 행복의 증표입니다!
+              🥦 냉장고에 있는 재료들로 아주 정성스럽고 건강하게 완성한 집밥 요리입니다!
             </p>
             <button
               onClick={() => setZoomImage(null)}

@@ -26,6 +26,71 @@ import RecipeDetail from "./components/RecipeDetail";
 import pamugiMascot from "./assets/images/pamugi_mascot_1781926745171.jpg";
 import { validateApiKey } from "./utils/geminiClient";
 
+// Resilient Mascot Avatar component designed to heal itself if raw jpeg asset is missing on Vercel
+export function MascotAvatar({ className = "w-16 h-16" }: { className?: string }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  
+  if (imgFailed) {
+    return (
+      <div className={`rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100/80 flex items-center justify-center shadow-xs ${className}`}>
+        <span className="text-3xl animate-pulse filter drop-shadow-sm select-none">🥬</span>
+      </div>
+    );
+  }
+  
+  return (
+    <img
+      src={pamugiMascot}
+      alt="파먹이"
+      onError={() => setImgFailed(true)}
+      className={`${className} object-cover`}
+      referrerPolicy="no-referrer"
+    />
+  );
+}
+
+// Resilient Recipe Image Component that falls back to PameokiCharacter automatically if the source is broken
+export function RecipeMedia({ recipe, showCharOnCard }: { recipe: Recipe; showCharOnCard: boolean }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  
+  if (showCharOnCard || imgFailed) {
+    return (
+      <div className="w-full h-full bg-gradient-to-br from-[#FAF9F6] to-[#EAECE0] border border-[#BC6C4D]/20 flex flex-col items-center justify-center p-3 relative select-none">
+        <PameokiCharacter className="w-14 h-14 animate-pulse" />
+        <span className="text-xs text-[#BC6C4D] font-black text-center mt-1.5 px-3 block drop-shadow-[0_0.5px_1px_rgba(255,255,255,0.8)] leading-normal">
+          파먹이가 강력 추천하는 맛있는 요리법 🥬
+        </span>
+        <div className="absolute top-2 left-2 bg-[#51573c] text-white text-[8px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow-3xs">
+          <span>💚</span> 파먹이 추천
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <>
+      <img
+        src={recipe.customImage || getRecipeImage(recipe.name)}
+        alt={recipe.name}
+        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+        referrerPolicy="no-referrer"
+        onError={() => setImgFailed(true)}
+      />
+      <div className="absolute top-2 left-2 bg-black/45 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 filter drop-shadow-[0_0.5px_1px_rgba(0,0,0,0.5)]">
+        {recipe.customImage ? (
+          <>
+            <span>📸</span> 실제 조리 인증샷
+          </>
+        ) : (
+          <>
+            <span>🍽️</span> 연출용 가상 요리 사진
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
 // Beautiful starter logs to demonstrate visual telemetry immediately on first load
 const SEED_LOGS: SavingsLog[] = [
   {
@@ -49,6 +114,11 @@ const SEED_LOGS: SavingsLog[] = [
 ];
 
 export default function App() {
+  // Accessibility state to support larger fonts for elderly citizens (defaults to "large")
+  const [fontScale, setFontScale] = useState<"normal" | "large" | "xlarge">(() => {
+    return (localStorage.getItem("pameoki_font_scale") as any) || "large";
+  });
+
   // Navigation: "cook" (recipe search) vs "favorites" (saved bookmarks) vs "dashboard" (progress tracker)
   const [activeTab, setActiveTab] = useState<"cook" | "favorites" | "dashboard">("cook");
 
@@ -110,6 +180,51 @@ export default function App() {
   const [isValidating, setIsValidating] = useState(false);
   const [isGuideExpanded, setIsGuideExpanded] = useState(false);
 
+  const translateErrorToKorean = (errorMsg: string): string => {
+    if (!errorMsg) return "원인을 알 수 없는 오류로 검증에 실패했습니다.";
+    const lower = errorMsg.toLowerCase();
+    
+    if (
+      lower.includes("api key not valid") || 
+      lower.includes("api_key_invalid") || 
+      lower.includes("invalid api key") || 
+      lower.includes("not found") ||
+      lower.includes("invalid")
+    ) {
+      return "입력하신 Gemini API Key가 유효하지 않거나 잘못되었습니다. 공백 없이 올바른 키 값을 입력했는지 확인해 주세요.";
+    }
+    if (
+      lower.includes("limit") || 
+      lower.includes("quota") || 
+      lower.includes("exhausted") || 
+      lower.includes("resource_exhausted") ||
+      lower.includes("rate limit")
+    ) {
+      return "Gemini API 호출 할당량 또는 사용 한도를 초과했습니다. 구글 AI 스튜디오 계정의 호출 상태나 결제 등록 상태를 확인해 주세요.";
+    }
+    if (
+      lower.includes("blocked") || 
+      lower.includes("safelist") || 
+      lower.includes("forbidden") || 
+      lower.includes("permission") ||
+      lower.includes("denied")
+    ) {
+      return "지정되거나 차단된 제한 사항으로 인해 해당 API Key의 권한이 거부되었습니다.";
+    }
+    if (
+      lower.includes("network") || 
+      lower.includes("fetch") || 
+      lower.includes("failed to fetch") || 
+      lower.includes("timeout") || 
+      lower.includes("net::") ||
+      lower.includes("cors")
+    ) {
+      return "네트워크 요청 실패: 인터넷 연결이 불안정하거나 구글 API 서버와의 로컬 네트워크 통신이 통제되어 있을 수 있습니다.";
+    }
+    
+    return `인증 테스트 중 다음 오류가 감지되었습니다: ${errorMsg}`;
+  };
+
   const handleValidateApiKey = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!apiKey || !apiKey.trim()) {
@@ -133,7 +248,8 @@ export default function App() {
       setApiKeyValidated(true);
     } catch (err: any) {
       console.error(err);
-      setValidationError(err.message || "유효성 테스트 실패: 다시 입력해 보시거나, 인터넷 연결을 확인해 주세요.");
+      const mappedError = translateErrorToKorean(err.message || "");
+      setValidationError(mappedError);
       localStorage.removeItem("pamugi_gemini_api_key_valid");
     } finally {
       setIsValidating(false);
@@ -388,65 +504,72 @@ export default function App() {
 
   if (!currentProfile) {
     return (
-      <div className="min-h-screen bg-[#F7F5EE] text-stone-800 p-4 md:p-12 flex flex-col items-center justify-center relative font-sans selection:bg-[#5C6346]/20 selection:text-[#5C6346]">
+      <div className="min-h-screen bg-[#FDFDFB] text-stone-800 p-4 md:p-12 flex flex-col items-center justify-center relative font-sans selection:bg-[#5C6346]/20 selection:text-[#5C6346]">
         {/* Subtle grid styling */}
-        <div className="absolute inset-0 bg-[radial-gradient(#e5e4da_1px,transparent_1px)] [background-size:16px_16px] opacity-65 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(#e5e4da_1px,transparent_1px)] [background-size:20px_20px] opacity-65 pointer-events-none" />
 
-        <div className="max-w-4xl w-full z-10 space-y-8 animate-fade-in">
-          {/* Logo / Brand */}
-          <div className="text-center space-y-3">
-            <div className="inline-flex w-16 h-16 bg-white/60 border border-white rounded-3xl items-center justify-center shadow-md overflow-hidden">
-              <img
-                src={pamugiMascot}
-                alt="파먹이"
-                className="w-full h-full object-cover animate-pulse"
-                referrerPolicy="no-referrer"
-              />
+        <div className="max-w-4xl w-full z-10 space-y-10 animate-fade-in text-center">
+          
+          {/* Brand & Landing Hero - CultureFit Style */}
+          <div className="space-y-6">
+            <div className="inline-flex w-20 h-20 bg-white/70 border-2 border-white rounded-[24px] items-center justify-center shadow-md overflow-hidden transition-transform hover:rotate-3 duration-300">
+              <MascotAvatar className="w-full h-full" />
             </div>
-            <div>
-              <h1 className="text-2xl md:text-3.5xl font-extrabold tracking-tight text-[#2D3120]">
-                식비 절감 멘토 <span className="text-[#BC6C4D]">파먹이 🥬</span>
+            
+            <div className="space-y-3.5">
+              <h1 className="text-3.5xl sm:text-4.5xl md:text-5xl font-black tracking-tight text-[#2D3120] leading-none">
+                식비 아끼는 도우미 <span className="text-[#BC6C4D]">파먹이 🥬</span>
               </h1>
-              <p className="text-xs md:text-sm text-[#5C6346] font-semibold mt-1">
-                만들어주시는 <strong>주인공의 목적</strong>에 꼭 맞춘 냉장고 구출 맞춤 레시피
+              <p className="text-sm sm:text-base md:text-lg text-[#5C6346] font-semibold max-w-2xl mx-auto leading-relaxed">
+                집에 있는 재료들로 나에게 딱 맞는 <strong>쉬운 요리법</strong>을 추천해 드립니다.
               </p>
+            </div>
+
+            {/* Glowing Green Pill Badge Like CultureFit Screenshot */}
+            <div className="pt-1.5">
+              <div id="gemini-badge-pill" className="inline-flex items-center gap-2 px-5 py-2 bg-emerald-50 border border-emerald-200/90 text-emerald-800 rounded-full text-xs sm:text-sm font-black shadow-xs tracking-tight animate-bounce select-none" style={{ animationDuration: "3s" }}>
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                누구나 평생 무료로 사용 가능해요
+              </div>
             </div>
           </div>
 
-          {/* Intro Section */}
-          <div className="bg-white/45 border border-white/60 backdrop-blur-md rounded-3xl p-5 text-center space-y-1.5 max-w-lg mx-auto shadow-2xs">
-            <h2 className="text-sm md:text-base font-extrabold text-[#1C1F14]">누가 요리를 준비하시나요?</h2>
-            <p className="text-[11px] md:text-xs text-stone-500 leading-relaxed">
-              아이 영양 한끼, 자취생의 5분 생존 요리, 아빠의 야식 등!<br />
-              누가 조리하느냐에 따라 식비 가계부와 멘토링 조언이 다르게 작용합니다.
+          {/* Target intro summary description block */}
+          <div className="max-w-xl mx-auto bg-white/55 border border-white/80 backdrop-blur-md rounded-3xl p-5 sm:p-6 text-center space-y-2 shadow-2xs">
+            <h2 className="text-sm sm:text-base font-black text-[#1C1F14] flex items-center justify-center gap-1.5">
+              <span>식사를 준비하시는 분은 누구인가요?</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-semibold">
+              쉬운 요리가 필요한 분, 아이 밥, 아빠 야식 등!<br />
+              선택하시는 분에 따라서 맞춤형 설명과 요리법이 제공됩니다.
             </p>
           </div>
 
-          {/* Gemini API Key Section */}
+          {/* Gemini API Key Card */}
           <div 
             id="gemini-key-auth-card" 
-            className="max-w-xl mx-auto bg-white/95 border border-white rounded-[24px] sm:rounded-[32px] p-5 sm:p-7 shadow-xs space-y-4 sm:space-y-5 transition-all text-left"
+            className="max-w-xl mx-auto bg-white border border-stone-200/50 rounded-[32px] p-6 sm:p-8 shadow-md space-y-5 transition-all text-left"
           >
             {/* Header / Intro */}
-            <div className="flex items-start gap-2.5 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-xl flex-shrink-0 shadow-3xs">
-                <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-emerald-100/60 text-emerald-700 rounded-2xl flex-shrink-0 shadow-3xs">
+                <Check className="w-5 h-5 stroke-[3]" />
               </div>
-              <div className="space-y-0.5 select-none">
-                <h3 className="text-xs sm:text-sm md:text-base font-black text-[#2D3120] leading-tight">무료로 시작하세요. Gemini API 키만 있으면 됩니다.</h3>
-                <p className="text-[10px] sm:text-xs text-stone-500 font-medium">
-                  본 애플리케이션은 냉장고 재료 스캔 및 파먹이 AI 레시피 설계를 위해 고유한 API Key를 필요로 합니다.
+              <div className="space-y-1 select-none">
+                <h3 className="text-sm sm:text-base font-black text-[#2D3120] leading-tight">열쇠(API 키)를 입력하고 시작하기</h3>
+                <p className="text-xs text-[#5C6346] font-semibold leading-relaxed">
+                  여기에 입력하시는 십여 자리 키는 외부 서버가 아닌 사용자의 인터넷 창에만 안전하게 저장되며, 맛있는 요리법을 알려드릴 때에만 사용됩니다.
                 </p>
               </div>
             </div>
 
             {/* Input & Validate Button */}
             {!apiKeyValidated ? (
-              <form onSubmit={handleValidateApiKey} className="space-y-3">
-                <div className="flex flex-col sm:flex-row gap-2">
+              <form onSubmit={handleValidateApiKey} className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <div className="relative flex-1">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-stone-400 pointer-events-none">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-stone-400 pointer-events-none">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 stroke-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                         <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                       </svg>
                     </span>
@@ -458,52 +581,64 @@ export default function App() {
                         setValidationError("");
                       }}
                       disabled={isValidating}
-                      placeholder="Gemini API Key 입력 (AIzaSy...)"
-                      className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 placeholder-stone-400 font-mono text-xs text-stone-800 bg-stone-50 border border-stone-200 rounded-xl sm:rounded-2xl focus:bg-white focus:outline-none focus:border-[#BC6C4D] focus:ring-1 focus:ring-[#BC6C4D] transition-all"
+                      placeholder="Gemini API Key 입력 (AIzaSy로 시작...)"
+                      className="w-full pl-11 pr-4 py-3.5 sm:py-4 placeholder-stone-400 font-mono text-sm text-stone-800 bg-stone-50 border border-stone-200 rounded-2xl focus:bg-white focus:outline-none focus:border-[#BC6C4D] focus:ring-2 focus:ring-[#BC6C4D]/20 transition-all font-semibold"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={isValidating || !apiKey.trim()}
-                    className="px-5 py-2.5 sm:py-3 bg-[#5C6346] hover:bg-[#494E37] disabled:bg-stone-200 disabled:text-stone-400 disabled:cursor-not-allowed text-white font-black text-xs rounded-xl sm:rounded-2xl shadow-xs transition-all focus:outline-none flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap min-w-[90px]"
+                    className="px-6 py-3.5 sm:py-4 bg-[#5C6346] hover:bg-[#494E37] disabled:bg-stone-100 disabled:text-stone-400 disabled:cursor-not-allowed text-white font-black text-sm sm:text-base rounded-2xl shadow-xs transition-all focus:outline-none flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer whitespace-nowrap min-w-[110px]"
                   >
                     {isValidating ? (
                       <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>검사 중...</span>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>인증 검사 중...</span>
                       </>
                     ) : (
-                      <span>시작하기</span>
+                      <span className="flex items-center gap-1">무료로 시작하기 <span className="font-sans">→</span></span>
                     )}
                   </button>
                 </div>
                 
                 {validationError && (
-                  <p className="text-[10px] sm:text-xs text-rose-600 font-bold bg-rose-50 border border-rose-100 p-2.5 rounded-xl flex items-center gap-1.5 animate-pulse">
-                    <span>⚠️</span> {validationError}
-                  </p>
+                  <div className="text-xs sm:text-sm text-rose-700 bg-rose-50 border border-rose-100/70 p-4 rounded-2xl space-y-2.5 animate-fade-in text-left">
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-base flex-shrink-0">⚠️</span> 
+                      <span className="font-extrabold leading-relaxed">{validationError}</span>
+                    </div>
+                    <div className="text-[11px] sm:text-xs text-[#5C6346] font-semibold pl-6 border-t border-rose-200/40 pt-2 flex flex-col gap-1 leading-relaxed">
+                      <p className="font-bold text-rose-600/90 flex items-center gap-1">
+                        <span>💡</span>
+                        <span>문제가 지속하여 해결되지 않으시나요?</span>
+                      </p>
+                      <p className="text-stone-500 font-medium">
+                        브라우저 캐시 세션 문제일 수 있으므로 키보드에서 단축키 <kbd className="px-1.5 py-0.5 bg-stone-100 border border-stone-300 rounded text-[10px] font-mono text-stone-700 shadow-3xs font-bold">Ctrl + Shift + R</kbd> 키 (Mac 사용자는 <kbd className="px-1.5 py-0.5 bg-stone-100 border border-stone-300 rounded text-[10px] font-mono text-stone-700 shadow-3xs font-bold">Cmd + Shift + R</kbd>)를 눌러서 <strong>페이지를 완전히 캐시 없이 강제 새로고침</strong>한 후 재시도하시는 것을 강력히 권장해 드립니다.
+                      </p>
+                    </div>
+                  </div>
                 )}
               </form>
             ) : (
-              <div className="bg-[#FAF9F5] border border-[#BC6C4D]/10 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-bounce"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <div className="bg-[#FAF9F5] border border-[#BC6C4D]/10 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="space-y-1 text-center sm:text-left">
+                  <div className="flex items-center justify-center sm:justify-start gap-1.5">
+                    <span className="flex h-2.5 w-2.5 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                     </span>
-                    <span className="text-[11px] sm:text-xs font-extrabold text-emerald-800">Gemini API Key 정상 등록됨</span>
+                    <span className="text-xs sm:text-sm font-black text-emerald-800">Gemini API Key 정상 등록됨</span>
                   </div>
-                  <p className="text-[10px] sm:text-[11px] text-stone-500 font-mono">
-                    {apiKey.substring(0, 8)}••••••••••••••••{apiKey.substring(apiKey.length - 4)}
+                  <p className="text-xs text-stone-500 font-mono tracking-tight">
+                    {apiKey.substring(0, 10)}••••••••••••••••{apiKey.substring(apiKey.length - 6)}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={handleResetApiKey}
-                  className="px-2.5 py-1.5 bg-white border border-stone-200 hover:border-rose-200 text-stone-600 hover:text-rose-600 font-extrabold text-[10px] rounded-xl shadow-3xs transition-all active:scale-95 cursor-pointer"
+                  className="px-4 py-2 bg-white border border-stone-200 hover:border-rose-200 text-stone-700 hover:text-rose-600 font-black text-xs rounded-xl shadow-3xs transition-all active:scale-95 cursor-pointer"
                 >
-                  변경하기
+                  다른 키로 사용 변경
                 </button>
               </div>
             )}
@@ -604,6 +739,51 @@ export default function App() {
             </div>
           </div>
 
+          {/* Brand Technology Bento Grid Details - CultureFit screenshot styled info layout */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-left max-w-4xl mx-auto pt-4 select-none">
+            
+            {/* Bento Card 1 */}
+            <div className="bg-white border border-stone-200/65 rounded-[24px] p-6 space-y-3.5 shadow-3xs transition-all hover:shadow-xs hover:border-[#BC6C4D]/30 duration-300">
+              <div className="text-2xl w-10 h-10 rounded-xl bg-orange-50/70 border border-orange-100 flex items-center justify-center font-bold">📸</div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-black text-[#2D3120] tracking-tight">냉장고 사진 찍기</h4>
+                <p className="text-[12px] sm:text-xs text-stone-500 font-semibold leading-relaxed">
+                  남은 재료 사진을 찍어 올리면, 먹을 수 있는 재료를 똑똑하게 찾아내요.
+                </p>
+              </div>
+            </div>
+
+            {/* Bento Card 2 */}
+            <div className="bg-white border border-stone-200/65 rounded-[24px] p-6 space-y-3.5 shadow-3xs transition-all hover:shadow-xs hover:border-[#BC6C4D]/30 duration-300">
+              <div className="text-2xl w-10 h-10 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center justify-center font-bold">🍳</div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-black text-[#2D3120] tracking-tight">딱 맞는 요리 요법</h4>
+                <p className="text-[12px] sm:text-xs text-stone-500 font-semibold leading-relaxed">
+                  자취생을 위한 빠르고 쉬운 밥상, 소중한 아기 밥상, 밤에 먹는 야식 등 내 마음에 쏙 드는 요리법을 추천해 드려요.
+                </p>
+              </div>
+            </div>
+
+            {/* Bento Card 3 */}
+            <div className="bg-white border border-stone-200/65 rounded-[24px] p-6 space-y-3.5 shadow-3xs transition-all hover:shadow-xs hover:border-[#BC6C4D]/30 duration-300">
+              <div className="text-2xl w-10 h-10 rounded-xl bg-blue-50/70 border border-blue-100 flex items-center justify-center font-bold">💰</div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-black text-[#2D3120] tracking-tight">알뜰살뜰 식비 아끼기</h4>
+                <p className="text-[12px] sm:text-xs text-stone-500 font-semibold leading-relaxed">
+                  버리는 장보기 비용을 꽉 줄이고, 집밥 요리로 내가 오늘 돈을 얼마나 아꼈는지 바로바로 보여드립니다.
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Section Divider with Label */}
+          <div className="relative flex py-3 items-center justify-center max-w-4xl mx-auto">
+            <div className="flex-grow border-t border-stone-200/50"></div>
+            <span className="flex-shrink mx-4 text-xs sm:text-sm font-black text-[#BC6C4D] bg-[#FDFDFB] px-4 border border-stone-200/80 rounded-full py-1.5 shadow-3xs select-none">나에게 맞는 요리 모드를 선택해 주세요</span>
+            <div className="flex-grow border-t border-stone-200/50"></div>
+          </div>
+
           {/* Profile Choice Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             {[...profiles]
@@ -657,25 +837,25 @@ export default function App() {
                       </div>
 
                       {/* Details */}
-                      <div>
-                        <h3 className="font-extrabold text-[#2D3120] text-sm sm:text-base group-hover:text-[#BC6C4D] transition-colors">
+                      <div className="space-y-1">
+                        <h3 className="font-black text-[#2D3120] text-base sm:text-lg group-hover:text-[#BC6C4D] transition-colors tracking-tight">
                           {p.nickname}
                         </h3>
-                        <p className="text-[10px] sm:text-[11px] text-stone-500 font-medium mt-1 min-h-[24px] sm:min-h-[32px] leading-relaxed">
+                        <p className="text-xs sm:text-sm text-stone-600 font-semibold leading-relaxed">
                           {p.purposeType}
                         </p>
                       </div>
                     </div>
 
                     {/* Summary Footer Stats */}
-                    <div className="w-full mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-stone-100 flex justify-between items-center text-[9px] sm:text-[10px] text-stone-600 font-bold">
+                    <div className="w-full mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-stone-100 flex justify-between items-center text-xs text-stone-600 font-semibold">
                       <div>
-                        <div className="text-[8px] sm:text-[9px] text-stone-400 font-normal">누적 절약수익</div>
-                        <div className="text-[#BC6C4D] text-xs font-black">{formatCurrency(totalSaved)}</div>
+                        <div className="text-[10px] text-stone-400 font-semibold mb-0.5">누적 절약수익</div>
+                        <div className="text-[#BC6C4D] text-sm font-black">{formatCurrency(totalSaved)}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[8px] sm:text-[9px] text-stone-400 font-normal">보관집밥</div>
-                        <div className="text-stone-800 text-xs font-black">{p.savedRecipes.length}개 소장</div>
+                        <div className="text-[10px] text-stone-400 font-semibold mb-0.5">보관집밥</div>
+                        <div className="text-[#2D3120] text-sm font-black">{p.savedRecipes.length}개 소장</div>
                       </div>
                     </div>
 
@@ -812,27 +992,78 @@ export default function App() {
     );
   }
 
+  const fontScaleContainerClass = 
+    fontScale === "xlarge" ? "font-scale-xlarge" :
+    fontScale === "large" ? "font-scale-large" : "";
+
   return (
-    <div className="min-h-screen text-stone-800 pb-16 selection:bg-[#5C6346]/20 selection:text-[#5C6346]">
+    <div className={`min-h-screen text-stone-800 pb-16 selection:bg-[#5C6346]/20 selection:text-[#5C6346] ${fontScaleContainerClass}`}>
       {/* 1. Styled navigation header bar */}
-      <header className="sticky top-0 z-40 bg-white/30 backdrop-blur-md border-b border-white/40 px-4 py-4 md:px-8">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+      <header className="sticky top-0 z-40 bg-white/40 backdrop-blur-md border-b border-white/50 px-4 py-4 md:px-8">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-1.5 sm:gap-3">
             <div className="w-12 h-12 bg-white/50 border border-white/80 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-md overflow-hidden shrink-0">
-              <img
-                src={pamugiMascot}
-                alt="파먹이 캐릭터"
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
+              <MascotAvatar className="w-full h-full" />
             </div>
             <div>
-                <h1 className="text-lg md:text-xl font-bold tracking-tight text-[#2D3120] font-sans flex items-center gap-1.5 leading-none">
-                  식비 절감 멘토 <span className="text-[#BC6C4D]">파먹이</span>
+                <h1 className="text-base sm:text-lg font-black tracking-tight text-[#2D3120] font-sans leading-tight">
+                  식비 절감 멘토<br />
+                  <span className="text-[#BC6C4D] whitespace-nowrap">파먹이 🥬</span>
                 </h1>
-                <p className="text-[10px] text-[#5C6346] font-semibold mt-1 uppercase tracking-wider">
+                <p className="text-[9px] sm:text-[10px] text-[#5C6346] font-bold mt-0.5 uppercase tracking-wider leading-none">
                   Life-Saving Recipe Curator
                 </p>
+              </div>
+            </div>
+
+            {/* 👵👴 어르신용 글자 크기 맞춤 버튼 (Accessibility Font-Sizer Control) */}
+            <div className="flex items-center gap-1.5 bg-amber-50/90 border border-amber-200/60 px-3 py-1.5 rounded-2xl shadow-3xs select-none shrink-0">
+              <span className="text-[11px] sm:text-xs font-black text-amber-800 flex items-center gap-1">
+                <span>👓</span> 글자 크기:
+              </span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFontScale("normal");
+                    localStorage.setItem("pameoki_font_scale", "normal");
+                  }}
+                  className={`px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-black transition-all cursor-pointer ${
+                    fontScale === "normal"
+                      ? "bg-stone-800 text-white shadow-3xs"
+                      : "bg-white text-stone-600 border border-stone-200 hover:bg-stone-100"
+                  }`}
+                >
+                  보통
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFontScale("large");
+                    localStorage.setItem("pameoki_font_scale", "large");
+                  }}
+                  className={`px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-black transition-all cursor-pointer ${
+                    fontScale === "large"
+                      ? "bg-[#BC6C4D] text-white shadow-3xs font-black"
+                      : "bg-white text-stone-600 border border-stone-200 hover:bg-stone-100"
+                  }`}
+                >
+                  크게 (추천)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFontScale("xlarge");
+                    localStorage.setItem("pameoki_font_scale", "xlarge");
+                  }}
+                  className={`px-2.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-black transition-all cursor-pointer ${
+                    fontScale === "xlarge"
+                      ? "bg-[#5C6346] text-white shadow-3xs scale-105 animate-pulse font-black"
+                      : "bg-white text-stone-600 border border-stone-200 hover:bg-stone-100"
+                  }`}
+                >
+                  아주 크게 👵👴
+                </button>
               </div>
             </div>
 
@@ -949,12 +1180,7 @@ export default function App() {
                     </div>
                     <div className="relative w-14 h-14 rounded-full border border-[#2D3120] flex items-center justify-center bg-white/40 overflow-hidden shadow-sm">
                       <div className="absolute inset-[2px] rounded-full border border-dashed border-[#5C6346]/40 z-10" />
-                      <img
-                        src={pamugiMascot}
-                        alt="파먹이"
-                        className="w-full h-full object-cover scale-110"
-                        referrerPolicy="no-referrer"
-                      />
+                      <MascotAvatar className="w-full h-full scale-110" />
                     </div>
                   </div>
 
@@ -1021,10 +1247,7 @@ export default function App() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       {recommendedRecipes.map((recipe) => {
                         const isCooked = isRecipeAlreadyCooked(recipe);
-                        const showCharOnCard = !recipe.customImage && (
-                          localStorage.getItem(`pameoki_prefer_char_${recipe.name}`) === "true" ||
-                          (localStorage.getItem(`pameoki_prefer_char_${recipe.name}`) === null && isFallbackRecipeImage(recipe.name))
-                        );
+                        const showCharOnCard = !recipe.customImage;
                         return (
                           <div
                             key={recipe.name}
@@ -1033,37 +1256,7 @@ export default function App() {
                             <div className="space-y-3">
                               {/* Virtual Recipe Food Photo / Pameoki Character Preview */}
                               <div className="relative w-full h-36 rounded-2xl overflow-hidden border border-white/80 shadow-3xs shrink-0 font-sans">
-                                {showCharOnCard ? (
-                                  <div className="w-full h-full bg-gradient-to-br from-[#F5F7EC] to-[#E5E8D3] flex flex-col items-center justify-center p-2 relative select-none">
-                                    <PameokiCharacter className="w-16 h-16 animate-bounce" />
-                                    <span className="text-xs sm:text-xs text-[#BC6C4D] font-black text-center mt-1.5 px-3 block drop-shadow-[0_0.5px_1px_rgba(255,255,255,0.8)]">
-                                      오늘의 파먹기 기록을 남겨주세요 📸
-                                    </span>
-                                    <div className="absolute top-2 left-2 bg-[#51573c] text-white text-[8px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow-3xs">
-                                      <span>💚</span> 야무진 파먹이 셰프
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <img
-                                      src={recipe.customImage || getRecipeImage(recipe.name)}
-                                      alt={recipe.name}
-                                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                                      referrerPolicy="no-referrer"
-                                    />
-                                    <div className="absolute top-2 left-2 bg-black/45 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 filter drop-shadow-[0_0.5px_1px_rgba(0,0,0,0.5)]">
-                                      {recipe.customImage ? (
-                                        <>
-                                          <span>📸</span> 실제 조리 인증샷
-                                        </>
-                                      ) : (
-                                        <>
-                                          <span>🍽️</span> 연출용 가상 요리 사진
-                                        </>
-                                      )}
-                                    </div>
-                                  </>
-                                )}
+                                <RecipeMedia recipe={recipe} showCharOnCard={showCharOnCard} />
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -1124,7 +1317,7 @@ export default function App() {
                                 onClick={() => setSelectedRecipe(recipe)}
                                 className="bg-[#5C6346] hover:bg-[#4d5239] text-white py-1.5 px-4 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1 cursor-pointer"
                               >
-                                {isCooked ? "조리 상태 보기" : "차례 보기"}
+                                {isCooked ? "조리 상태 보기" : "레시피 보기"}
                                 <ChevronRight className="w-3 h-3" />
                               </button>
                             </div>
@@ -1191,10 +1384,7 @@ export default function App() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {savedRecipes.map((recipe) => {
                       const isCooked = isRecipeAlreadyCooked(recipe);
-                      const showCharOnCard = !recipe.customImage && (
-                        localStorage.getItem(`pameoki_prefer_char_${recipe.name}`) === "true" ||
-                        (localStorage.getItem(`pameoki_prefer_char_${recipe.name}`) === null && isFallbackRecipeImage(recipe.name))
-                      );
+                      const showCharOnCard = !recipe.customImage;
                       return (
                         <div
                           key={recipe.name}
@@ -1203,37 +1393,7 @@ export default function App() {
                           <div className="space-y-3">
                             {/* Virtual Recipe Food Photo / Pameoki Character Preview */}
                             <div className="relative w-full h-36 rounded-2xl overflow-hidden border border-white/80 shadow-3xs shrink-0 font-sans">
-                              {showCharOnCard ? (
-                                <div className="w-full h-full bg-gradient-to-br from-[#F5F7EC] to-[#E5E8D3] flex flex-col items-center justify-center p-2 relative select-none">
-                                  <PameokiCharacter className="w-16 h-16 animate-bounce" />
-                                  <span className="text-xs sm:text-xs text-[#BC6C4D] font-black text-center mt-1.5 px-3 block drop-shadow-[0_0.5px_1px_rgba(255,255,255,0.8)]">
-                                    오늘의 파먹기 기록을 남겨주세요 📸
-                                  </span>
-                                  <div className="absolute top-2 left-2 bg-[#51573c] text-white text-[8px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5 shadow-3xs">
-                                    <span>💚</span> 야무진 파먹이 셰프
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <img
-                                    src={recipe.customImage || getRecipeImage(recipe.name)}
-                                    alt={recipe.name}
-                                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                                    referrerPolicy="no-referrer"
-                                  />
-                                  <div className="absolute top-2 left-2 bg-black/45 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 filter drop-shadow-[0_0.5px_1px_rgba(0,0,0,0.5)]">
-                                    {recipe.customImage ? (
-                                      <>
-                                        <span>📸</span> 실제 조리 인증샷
-                                      </>
-                                    ) : (
-                                      <>
-                                        <span>🍽️</span> 연출용 가상 요리 사진
-                                      </>
-                                    )}
-                                  </div>
-                                </>
-                              )}
+                              <RecipeMedia recipe={recipe} showCharOnCard={showCharOnCard} />
                               
                               {/* Absolute Favorite Heart Icon Button */}
                               <button

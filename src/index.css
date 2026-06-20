@@ -34,3 +34,48 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(92, 99, 70, 0.45);
 }
+
+/* ────────────────────────────────────────────────────────
+   어르신 및 저시력 사용자를 위한 맞춤형 글씨 크기 조절 시스템 (Accessibility Scaling)
+   ──────────────────────────────────────────────────────── */
+
+/* 1. 큰 글씨 모드 (Large) */
+.font-scale-large .text-[8px] { font-size: 11px !important; }
+.font-scale-large .text-[9px] { font-size: 12px !important; }
+.font-scale-large .text-[10px] { font-size: 13.5px !important; }
+.font-scale-large .text-[11px] { font-size: 14.5px !important; }
+.font-scale-large .text-xs { font-size: 15.5px !important; }
+.font-scale-large .text-sm { font-size: 17.5px !important; }
+.font-scale-large .text-base { font-size: 19.5px !important; }
+.font-scale-large .text-lg { font-size: 21.5px !important; }
+.font-scale-large .text-xl { font-size: 24px !important; }
+.font-scale-large .text-2xl { font-size: 28px !important; }
+.font-scale-large .text-3xl { font-size: 34px !important; }
+
+/* 2. 아주 큰 글씨 모드 (Extra Large - 어르신 권장) */
+.font-scale-xlarge .text-[8px] { font-size: 12.5px !important; font-weight: 700 !important; }
+.font-scale-xlarge .text-[9px] { font-size: 14px !important; font-weight: 700 !important; }
+.font-scale-xlarge .text-[10px] { font-size: 15.5px !important; font-weight: 700 !important; }
+.font-scale-xlarge .text-[11px] { font-size: 16.5px !important; font-weight: 700 !important; }
+.font-scale-xlarge .text-xs { font-size: 18px !important; font-weight: 700 !important; }
+.font-scale-xlarge .text-sm { font-size: 19.5px !important; font-weight: 800 !important; }
+.font-scale-xlarge .text-base { font-size: 22px !important; font-weight: 800 !important; }
+.font-scale-xlarge .text-lg { font-size: 25px !important; font-weight: 900 !important; }
+.font-scale-xlarge .text-xl { font-size: 28px !important; font-weight: 900 !important; }
+.font-scale-xlarge .text-2xl { font-size: 33px !important; font-weight: 900 !important; }
+.font-scale-xlarge .text-3xl { font-size: 40px !important; font-weight: 900 !important; }
+
+/* 추가 윤곽 가독성 개정 */
+.font-scale-xlarge input, 
+.font-scale-xlarge textarea, 
+.font-scale-xlarge select {
+  font-weight: 700 !important;
+  border-width: 2px !important;
+}
+.font-scale-xlarge button {
+  font-weight: 900 !important;
+}
+.font-scale-xlarge p, .font-scale-xlarge span, .font-scale-xlarge li, .font-scale-xlarge label {
+  line-height: 1.7 !important;
+}
+
