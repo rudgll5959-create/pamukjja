@@ -23,6 +23,8 @@ import { PameokiCharacter } from "./components/RecipeDetail";
 import ChatInterface from "./components/ChatInterface";
 import Dashboard from "./components/Dashboard";
 import RecipeDetail from "./components/RecipeDetail";
+import pamugiMascot from "./assets/images/pamugi_mascot_1781926745171.jpg";
+import { validateApiKey } from "./utils/geminiClient";
 
 // Beautiful starter logs to demonstrate visual telemetry immediately on first load
 const SEED_LOGS: SavingsLog[] = [
@@ -119,15 +121,10 @@ export default function App() {
     setValidationError("");
 
     try {
-      const res = await fetch("/api/validate-key", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: apiKey.trim() }),
-      });
+      const result = await validateApiKey(apiKey.trim());
 
-      if (!res.ok) {
-        const errJson = await res.json();
-        throw new Error(errJson.error || "입력하신 API Key 유효성 검증에 실패했습니다.");
+      if (!result.valid) {
+        throw new Error(result.error || "입력하신 API Key 유효성 검증에 실패했습니다.");
       }
 
       // Success!
@@ -400,7 +397,7 @@ export default function App() {
           <div className="text-center space-y-3">
             <div className="inline-flex w-16 h-16 bg-white/60 border border-white rounded-3xl items-center justify-center shadow-md overflow-hidden">
               <img
-                src="/src/assets/images/pamugi_mascot_1781926745171.jpg"
+                src={pamugiMascot}
                 alt="파먹이"
                 className="w-full h-full object-cover animate-pulse"
                 referrerPolicy="no-referrer"
@@ -823,7 +820,7 @@ export default function App() {
           <div className="flex items-center gap-1.5 sm:gap-3">
             <div className="w-12 h-12 bg-white/50 border border-white/80 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-md overflow-hidden shrink-0">
               <img
-                src="/src/assets/images/pamugi_mascot_1781926745171.jpg"
+                src={pamugiMascot}
                 alt="파먹이 캐릭터"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -953,7 +950,7 @@ export default function App() {
                     <div className="relative w-14 h-14 rounded-full border border-[#2D3120] flex items-center justify-center bg-white/40 overflow-hidden shadow-sm">
                       <div className="absolute inset-[2px] rounded-full border border-dashed border-[#5C6346]/40 z-10" />
                       <img
-                        src="/src/assets/images/pamugi_mascot_1781926745171.jpg"
+                        src={pamugiMascot}
                         alt="파먹이"
                         className="w-full h-full object-cover scale-110"
                         referrerPolicy="no-referrer"

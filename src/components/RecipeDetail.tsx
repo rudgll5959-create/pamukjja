@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Recipe } from "../types";
 import { formatCurrency, getRecipeImage, isFallbackRecipeImage, getPameokiMotivationalSlogan } from "../utils";
+import pamugiMascot from "../assets/images/pamugi_mascot_1781926745171.jpg";
 
 const PAMEOKI_SLOGANS = [
   "앗! 요리 사진은 수줍어서 숨었지만, 맛은 귀여운 파먹이가 200% 보장해요! 💚",
@@ -438,7 +439,7 @@ export default function RecipeDetail({
           <div className="p-4 bg-orange-50/40 backdrop-blur-xs border border-[#BC6C4D]/35 rounded-2xl flex gap-3.5 shadow-3xs">
             <div className="w-10 h-10 rounded-full border border-[#2D3120] bg-white overflow-hidden shrink-0 shadow-sm relative">
               <img
-                src="/src/assets/images/pamugi_mascot_1781926745171.jpg"
+                src={pamugiMascot}
                 alt="파먹이"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"

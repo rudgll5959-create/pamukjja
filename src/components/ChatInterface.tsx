@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { ChatMessage, Recipe } from "../types";
 import { fileToBase64 } from "../utils";
+import pamugiMascot from "../assets/images/pamugi_mascot_1781926745171.jpg";
+import { analyzeImage, recommendRecipes } from "../utils/geminiClient";
 
 interface ChatInterfaceProps {
   onRecipesFound: (
@@ -240,24 +242,7 @@ export default function ChatInterface({
       setUploadProgress("AI가 냉장고 속 식재료나 영수증 물품 분석 중인 것 아시죠? 🔍");
 
       const apiKey = localStorage.getItem("pamugi_gemini_api_key") || "";
-      const res = await fetch("/api/analyze-image", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          ...(apiKey ? { "x-gemini-api-key": apiKey } : {})
-        },
-        body: JSON.stringify({
-          image: base64Data,
-          mimeType: file.type,
-        }),
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json();
-        throw new Error(errJson.error || "이미지 식재료 분석에 실시간 장애가 발견되었습니다.");
-      }
-
-      const data = await res.json();
+      const data = await analyzeImage(base64Data, file.type, apiKey);
       const detected = data.ingredients || [];
 
       if (detected.length === 0) {
@@ -383,30 +368,12 @@ export default function ChatInterface({
 
     try {
       const apiKey = localStorage.getItem("pamugi_gemini_api_key") || "";
-      const res = await fetch("/api/recommend-recipes", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          ...(apiKey ? { "x-gemini-api-key": apiKey } : {})
-        },
-        body: JSON.stringify({
-          ingredients: ingredientTags,
-          purpose: selectedPurpose,
-          note: targetNote,
-        }),
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json();
-        throw new Error(errJson.error || "추천 레시피 설계 중 임시 서버 장애가 있어 실패했습니다.");
-      }
-
-      const data = await res.json();
+      const data = await recommendRecipes(ingredientTags, selectedPurpose, targetNote, apiKey);
       const recipes = data.recipes || [];
       if (recipes.length === 0) {
         throw new Error("AI 요리사가 적당한 조합의 요리를 조율하지 못했습니다. 재료를 조금 조정하고 시도해 주세요!");
       }
-      onRecipesFound(recipes, ingredientTags, selectedPurpose, targetNote, data.isFallbackMode === true);
+      onRecipesFound(recipes, ingredientTags, selectedPurpose, targetNote, false);
     } catch (err: any) {
       console.error(err);
       setErrorText(err.message || "서버 통신 중 장애가 생겼습니다. 재시도해 주세요.");
@@ -456,7 +423,7 @@ export default function ChatInterface({
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-white border border-white/80 flex items-center justify-center shadow-md overflow-hidden shrink-0">
             <img
-              src="/src/assets/images/pamugi_mascot_1781926745171.jpg"
+              src={pamugiMascot}
               alt="파먹이"
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
@@ -491,7 +458,7 @@ export default function ChatInterface({
             {msg.sender === "mentor" && (
               <div className="w-8 h-8 rounded-full bg-white border border-white/80 overflow-hidden shadow-xs flex items-center justify-center shrink-0">
                 <img
-                  src="/src/assets/images/pamugi_mascot_1781926745171.jpg"
+                  src={pamugiMascot}
                   alt="파먹이"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
